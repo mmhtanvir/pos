@@ -44,4 +44,22 @@ class Sale(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     
     def __str__(self):
-        return f"Sale #{self.id} - {self.customer.full_name}"   
+        return f"Sale #{self.id} - {self.customer.full_name if self.customer else 'Walk-in'}"    
+
+class SaleItem(models.Model):
+    sale = models.ForeignKey(Sale, related_name='items', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+    product_name = models.CharField(max_length=100, default='Deleted Product')
+    product_price = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.PositiveIntegerField()
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    def save(self, *args, **kwargs):
+        if self.product:
+            self.product_name = self.product.part_name
+            self.product_price = self.product.price
+        self.subtotal = self.product_price * self.quantity
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.quantity}x {self.product_name} in Sale #{self.sale.id}"

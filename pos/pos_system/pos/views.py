@@ -1,7 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponseNotAllowed
 from django.contrib import messages
-from django.db import transaction
 from django.db.models import Q
 from .models import Product, Category, Brand
 
