@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponseNotAllowed
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Q
 from .models import Product, Category, Brand
 
 # Product Views
@@ -99,11 +100,21 @@ def delete_product(request, product_id):
     return HttpResponseNotAllowed(['POST'])
 
 def product_list(request):
+    search_query = request.GET.get('q', '').strip()
     products = Product.objects.all()
+    
+    if search_query:
+        products = products.filter(
+            Q(part_name__icontains=search_query) |
+            Q(part_number__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+    
     return render(request, 'product.html', {
         'products': products,
         'categories': Category.objects.all(),
         'brands': Brand.objects.all(),
+        'search_query': search_query
     })
 
 # Category/Brand Views
