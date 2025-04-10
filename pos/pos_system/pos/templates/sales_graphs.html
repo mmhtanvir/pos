@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% block title %}Analytics{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Sales Analytics Dashboard</h2>
+    
+    <div class="row">
+        <!-- Today's Sales Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5>Today's Sales</h5>
+                </div>
+                <div class="card-body">
+                    <h1 class="display-4 text-center">৳{{ chart_data.today|floatformat:2 }}</h1>
+                    <div class="text-center mt-3">
+                        <canvas id="todayChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Time Period Sales Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Sales Analytics</h5>
+                    <div class="btn-group btn-group-sm">
+                        <a href="?period=daily" class="btn btn-outline-secondary {% if current_period == 'daily' %}active{% endif %}">Daily</a>
+                        <a href="?period=weekly" class="btn btn-outline-secondary {% if current_period == 'weekly' %}active{% endif %}">Weekly</a>
+                        <a href="?period=monthly" class="btn btn-outline-secondary {% if current_period == 'monthly' %}active{% endif %}">Monthly</a>
+                        <a href="?period=yearly" class="btn btn-outline-secondary {% if current_period == 'yearly' %}active{% endif %}">Yearly</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="periodChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Products Chart -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Top Products</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="productsChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Common chart options
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            display: false,
+            labels: {
+                font: {
+                    size: 12
+                }
+            }
+        },
+        tooltip: {
+            bodyFont: {
+                size: 12
+            },
+            titleFont: {
+                size: 12
+            },
+            callbacks: {
+                label: function(context) {
+                    return ' ৳' + context.raw.toLocaleString();
+                }
+            }
+        }
+    },
+    scales: {
+        x: {
+            ticks: {
+                font: {
+                    size: 11
+                }
+            }
+        },
+        y: {
+            ticks: {
+                font: {
+                    size: 11
+                },
+                callback: function(value) {
+                    return '৳' + value.toLocaleString();
+                }
+            }
+        }
+    }
+};
+
+// Today's Sales Mini Chart
+new Chart(
+    document.getElementById('todayChart').getContext('2d'),
+    {
+        type: 'line',
+        data: {
+            labels: ['6AM', '9AM', '12PM', '3PM', '6PM', '9PM'],
+            datasets: [{
+                data: [0, {{ chart_data.today|floatformat:0 }}/4, {{ chart_data.today|floatformat:0 }}/2, {{ chart_data.today|floatformat:0 }}/1.5, {{ chart_data.today|floatformat:0 }}/1.2, {{ chart_data.today|floatformat:0 }}],
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: false,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            ...chartOptions,
+            scales: {
+                x: { display: true },
+                y: { display: false }
+            },
+            plugins: {
+                ...chartOptions.plugins,
+                tooltip: { enabled: false }
+            }
+        }
+    }
+);
+
+// Time Period Chart
+new Chart(
+    document.getElementById('periodChart').getContext('2d'),
+    {
+        type: '{% if current_period == "yearly" %}bar{% else %}line{% endif %}',
+        data: {
+            labels: {{ chart_data.time_period.labels|safe }},
+            datasets: [{
+                label: 'Sales (৳)',
+                data: {{ chart_data.time_period.data|safe }},
+                backgroundColor: '{% if current_period == "yearly" %}rgba(153, 102, 255, 0.7){% else %}rgba(54, 162, 235, 0.1){% endif %}',
+                borderColor: '{% if current_period == "yearly" %}rgba(153, 102, 255, 1){% else %}rgba(54, 162, 235, 1){% endif %}',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: {% if current_period == "yearly" %}false{% else %}true{% endif %}
+            }]
+        },
+        options: chartOptions
+    }
+);
+
+// Top Products Chart
+new Chart(
+    document.getElementById('productsChart').getContext('2d'),
+    {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_data.products.labels|safe }},
+            datasets: [{
+                data: {{ chart_data.products.data|safe }},
+                backgroundColor: {{ chart_data.products.backgroundColor|safe }},
+                borderWidth: 1
+            }]
+        },
+        options: {
+            ...chartOptions,
+            plugins: {
+                ...chartOptions.plugins,
+                legend: {
+                    ...chartOptions.plugins.legend,
+                    display: true,
+                    position: 'right'
+                }
+            }
+        }
+    }
+);
+</script>
+
+<style>
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border: none;
+    border-radius: 8px;
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    padding: 0.75rem 1.25rem;
+}
+.card-header h5 {
+    font-size: 1rem;
+    margin: 0;
+    font-weight: 600;
+}
+.card-body {
+    padding: 1rem;
+}
+.display-4 {
+    font-size: 2.5rem;
+}
+.btn-group .btn.active {
+    background-color: #6c757d;
+    color: white;
+}
+</style>
+{% endblock %}
